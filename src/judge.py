@@ -67,10 +67,11 @@ def load_case(case_id: str) -> dict | None:
         return json.load(f)
 
 
-def retrieve_similar(client, index, case_map, facts: str, current_id: str) -> list[dict]:
-    """Return TOP_K most similar cases (excluding the current one)."""
+def retrieve_similar(client, index, case_map, facts: str, current_id: str, before_year: int | None = None) -> list[dict]:
+    """Return TOP_K most similar cases (excluding the current one, no future leakage)."""
     vec = np.array([embed_text(client, facts)], dtype="float32")
-    distances, indices = index.search(vec, TOP_K + 1)
+    # Search a larger pool to account for year filtering
+    distances, indices = index.search(vec, min(len(case_map), (TOP_K + 1) * 10))
 
     similar = []
     for idx in indices[0]:
@@ -80,8 +81,11 @@ def retrieve_similar(client, index, case_map, facts: str, current_id: str) -> li
         if cid == current_id:
             continue
         case = load_case(cid)
-        if case:
-            similar.append(case)
+        if not case:
+            continue
+        if before_year is not None and (case.get("year") or 9999) >= before_year:
+            continue  # exclude future cases — no temporal leakage
+        similar.append(case)
         if len(similar) >= TOP_K:
             break
     return similar
@@ -122,7 +126,7 @@ def call_claude(bedrock_client, prompt: str) -> dict:
 
 def judge_case(case: dict, embed_client, bedrock_client, index, case_map) -> dict:
     facts = case.get("facts") or ""
-    similar = retrieve_similar(embed_client, index, case_map, facts, case["id"])
+    similar = retrieve_similar(embed_client, index, case_map, facts, case["id"], before_year=case.get("year"))
     precedents_str = format_precedents(similar)
 
     prompt = PROMPT_TEMPLATE.format(facts=facts[:3000], retrieved_cases=precedents_str)
