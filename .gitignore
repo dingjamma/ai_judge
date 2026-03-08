@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.env
+mlflow/
+data/faiss.index
+data/case_map.json
+data/processed/
+notebooks/
