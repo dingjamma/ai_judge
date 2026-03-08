@@ -115,13 +115,19 @@ def call_claude(bedrock_client, prompt: str) -> dict:
         contentType="application/json",
     )
     result = json.loads(resp["body"].read())
-    text = result["content"][0]["text"].strip()
+    content = result.get("content", [])
+    if not content or not content[0].get("text", "").strip():
+        raise ValueError("Model declined to respond — try rephrasing the case facts.")
+    text = content[0]["text"].strip()
     # Strip markdown code fences if present
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
             text = text[4:]
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise ValueError(f"Model returned unexpected response: {text[:200]}")
 
 
 def judge_case(case: dict, embed_client, bedrock_client, index, case_map) -> dict:
