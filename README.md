@@ -6,6 +6,8 @@ It fetches 200 landmark SCOTUS decisions from CourtListener, builds a RAG pipeli
 
 **Live demo → [ai-judge.streamlit.app](https://aijudge-mfdpnwy66vpjbv9qrdxmxn.streamlit.app)**
 
+**Medium article → [I Built an AI Judge. It Was Right 45.7% of the Time.](https://medium.com/p/ef78a9592f3c)**
+
 ---
 
 ## Results
